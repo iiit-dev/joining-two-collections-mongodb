@@ -1,0 +1,116 @@
+import { Router } from 'express';
+import Book from '../Models/book-model.js'
+import Author from '../Models/author-model.js'
+const router = Router();
+// CREATE BOOKS -->  http://localhost:8080/api/books/:id/create-book
+router.post('/:id/create-book', async (req, res, next) => {
+    try {
+        const { book_title, publication_date, genre, page_count, publisher, language, isbn, price } = req.body;
+        const authorId = req.params.id;
+
+        // Create a new book
+        const newBook = new Book({
+            book_title,
+            author: authorId,
+            publication_date,
+            genre,
+            page_count,
+            publisher,
+            language,
+            isbn,
+            price
+        });
+
+        await newBook.save();
+        const author = await Author.findById(authorId);
+        if (!author) {
+            return res.status(404).json({ message: 'Author not found!' });
+        }
+        await Author.findByIdAndUpdate(
+            authorId,
+            { $push: { books: newBook._id } },
+            { new: true }
+        );
+        const authorWithBooks = await Author.findById(authorId).populate('books');
+
+        res.status(200).json(authorWithBooks);
+
+    } catch (err) {
+        next(err);
+    }
+});
+export default router;
+why is the error below is being displayed
+{
+    "success": false,
+    "status": 500,
+    "message": "Schema hasn't been registered for model \"Book\".\nUse mongoose.model(name, schema)",
+    "stack": "MissingSchemaError: Schema hasn't been registered for model \"Book\".\nUse mongoose.model(name, schema)\n    at Connection.model (C:\\Users\\rites\\OneDrive\\Desktop\\Logic Lounge\\Weave Your Web Here\\Internship\\mongo-practice\\api\\node_modules\\mongoose\\lib\\connection.js:1218:13)\n    at _getModelFromConn (C:\\Users\\rites\\OneDrive\\Desktop\\Logic Lounge\\Weave Your Web Here\\Internship\\mongo-practice\\api\\node_modules\\mongoose\\lib\\helpers\\populate\\getModelsMapForPopulate.js:569:15)\n    at addModelNamesToMap (C:\\Users\\rites\\OneDrive\\Desktop\\Logic Lounge\\Weave Your Web Here\\Internship\\mongo-practice\\api\\node_modules\\mongoose\\lib\\helpers\\populate\\getModelsMapForPopulate.js:496:17)\n    at getModelsMapForPopulate (C:\\Users\\rites\\OneDrive\\Desktop\\Logic Lounge\\Weave Your Web Here\\Internship\\mongo-practice\\api\\node_modules\\mongoose\\lib\\helpers\\populate\\getModelsMapForPopulate.js:200:7)\n    at populate (C:\\Users\\rites\\OneDrive\\Desktop\\Logic Lounge\\Weave Your Web Here\\Internship\\mongo-practice\\api\\node_modules\\mongoose\\lib\\model.js:4183:21)\n    at _populate (C:\\Users\\rites\\OneDrive\\Desktop\\Logic Lounge\\Weave Your Web Here\\Internship\\mongo-practice\\api\\node_modules\\mongoose\\lib\\model.js:4143:5)\n    at C:\\Users\\rites\\OneDrive\\Desktop\\Logic Lounge\\Weave Your Web Here\\Internship\\mongo-practice\\api\\node_modules\\mongoose\\lib\\model.js:4115:5\n    at new Promise (<anonymous>)\n    at Function.populate (C:\\Users\\rites\\OneDrive\\Desktop\\Logic Lounge\\Weave Your Web Here\\Internship\\mongo-practice\\api\\node_modules\\mongoose\\lib\\model.js:4114:10)\n    at C:\\Users\\rites\\OneDrive\\Desktop\\Logic Lounge\\Weave Your Web Here\\Internship\\mongo-practice\\api\\node_modules\\mongoose\\lib\\query.js:2542:11"
+}
+author-model.js
+import mongoose from "mongoose";
+const Schema = mongoose.Schema;
+const authorSchema = new Schema({
+  name: {
+    type: String,
+    required: true,
+    trim: true
+  },
+  birthDate: {
+    type: Date,
+    required: true
+  },
+  nationality: {
+    type: String,
+    trim: true
+  },
+  books: [{ type: Schema.Types.ObjectId, ref: 'Book' }]
+
+}, { timestamps: true });
+
+const Author = mongoose.model('Author', authorSchema);
+export default Author;
+book-model.js
+import mongoose from "mongoose";
+const Schema = mongoose.Schema;
+const bookSchema = new mongoose.Schema({
+  book_title: {
+    type: String,
+    required: true
+  },
+  author: {
+    type: Schema.Types.ObjectId,
+    ref: 'Author'
+  },
+  publication_date: { 
+    type: Date,
+    required: true
+  },
+  genre: {
+    type: String,
+    required: true
+  },
+  page_count: {
+    type: Number,
+    required: true
+  },
+  publisher: {
+    type: String,
+    required: true
+  },
+  language: {
+    type: String,
+    required: true
+  },
+  isbn: {
+    type: String,
+    required: true
+  },
+  price: {
+    type: Number,
+    required: true
+  }
+});
+
+const Book = mongoose.model('Book ', bookSchema);
+export default Book
